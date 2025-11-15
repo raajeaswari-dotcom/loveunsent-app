@@ -1,7 +1,7 @@
 import ProductForm from "@/components/products/ProductForm";
 
 async function getProduct(id: string) {
-  const res = await fetch(`http://localhost:3000/api/products/${id}`);
+  const res = await fetch(`https://loveunsent-app.vercel.app/api/products/${id}`);
   return res.json();
 }
 
