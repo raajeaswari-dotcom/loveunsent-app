@@ -8,19 +8,21 @@ import mongoose from "mongoose";
 // ----------------------------
 export async function GET(
   req: Request,
-  { params }: { params: { id: string } }
+  context: { params: { id: string } }
 ) {
+  const { id } = context.params;
+
   try {
     await connectDB();
 
-    if (!mongoose.Types.ObjectId.isValid(params.id)) {
+    if (!mongoose.Types.ObjectId.isValid(id)) {
       return NextResponse.json(
         { error: "Invalid product ID" },
         { status: 400 }
       );
     }
 
-    const product = await Product.findById(params.id);
+    const product = await Product.findById(id);
     if (!product) {
       return NextResponse.json(
         { error: "Product not found" },
@@ -30,6 +32,7 @@ export async function GET(
 
     return NextResponse.json(product);
   } catch (error) {
+    console.error("GET PRODUCT ERROR:", error);
     return NextResponse.json(
       { error: "Failed to fetch product" },
       { status: 500 }
@@ -42,12 +45,14 @@ export async function GET(
 // ----------------------------
 export async function PUT(
   req: Request,
-  { params }: { params: { id: string } }
+  context: { params: { id: string } }
 ) {
+  const { id } = context.params;
+
   try {
     await connectDB();
 
-    if (!mongoose.Types.ObjectId.isValid(params.id)) {
+    if (!mongoose.Types.ObjectId.isValid(id)) {
       return NextResponse.json(
         { error: "Invalid product ID" },
         { status: 400 }
@@ -56,7 +61,7 @@ export async function PUT(
 
     const data = await req.json();
 
-    const updated = await Product.findByIdAndUpdate(params.id, data, {
+    const updated = await Product.findByIdAndUpdate(id, data, {
       new: true,
       runValidators: true,
     });
@@ -83,19 +88,21 @@ export async function PUT(
 // ----------------------------
 export async function DELETE(
   req: Request,
-  { params }: { params: { id: string } }
+  context: { params: { id: string } }
 ) {
+  const { id } = context.params;
+
   try {
     await connectDB();
 
-    if (!mongoose.Types.ObjectId.isValid(params.id)) {
+    if (!mongoose.Types.ObjectId.isValid(id)) {
       return NextResponse.json(
         { error: "Invalid product ID" },
         { status: 400 }
       );
     }
 
-    const deleted = await Product.findByIdAndDelete(params.id);
+    const deleted = await Product.findByIdAndDelete(id);
 
     if (!deleted) {
       return NextResponse.json(
