@@ -7,10 +7,10 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET!,
 });
 
-export async function POST(req: Request): Promise<Response> {
+export async function POST(req: Request) {
   try {
     const formData = await req.formData();
-    const file = formData.get("file") as File | null;
+    const file = formData.get("file") as File;
 
     if (!file) {
       return NextResponse.json(
@@ -19,22 +19,24 @@ export async function POST(req: Request): Promise<Response> {
       );
     }
 
-    // Convert file → buffer
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
-    // Upload to Cloudinary
     const uploadResult = await new Promise((resolve, reject) => {
       cloudinary.uploader
-        .upload_stream({}, (error, result) => {
-          if (error) reject(error);
-          else resolve(result);
-        })
+        .upload_stream(
+          { folder: "loveunsent" },
+          (error, result) => {
+            if (error) reject(error);
+            else resolve(result);
+          }
+        )
         .end(buffer);
     });
 
     return NextResponse.json(uploadResult);
   } catch (error: any) {
+    console.error("Upload error:", error);
     return NextResponse.json(
       { error: error.message || "Upload failed" },
       { status: 500 }
