@@ -53,7 +53,7 @@ export default function ProductForm({
       title,
       description,
       price: Number(price),
-      tags: tags.split(",").map((t) => t.trim()),
+      tags: tags.split(",").map((t: string) => t.trim()),
       images,
       paperType,
       writer,
