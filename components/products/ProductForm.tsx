@@ -10,11 +10,11 @@ export default function ProductForm({
   product?: any;
   onSubmit: (data: any) => Promise<void>;
 }) {
-  const [title, setTitle] = useState(product?.title || "");
-  const [description, setDescription] = useState(product?.description || "");
-  const [price, setPrice] = useState(product?.price || "");
-  const [tags, setTags] = useState(product?.tags?.join(", ") || "");
-  const [images, setImages] = useState(product?.images || []);
+  const [title, setTitle] = useState<string>(product?.title || "");
+  const [description, setDescription] = useState<string>(product?.description || "");
+  const [price, setPrice] = useState<string>(product?.price || "");
+  const [tags, setTags] = useState<string>(product?.tags?.join(", ") || "");
+  const [images, setImages] = useState<string[]>(product?.images || []);
 
   // Dropdown data
   const [paperTypes, setPaperTypes] = useState<any[]>([]);
@@ -23,10 +23,10 @@ export default function ProductForm({
   const [categories, setCategories] = useState<any[]>([]);
 
   // Selected values
-  const [paperType, setPaperType] = useState(product?.paperType || "");
-  const [writer, setWriter] = useState(product?.writer || "");
-  const [designer, setDesigner] = useState(product?.designer || "");
-  const [category, setCategory] = useState(product?.category || "");
+  const [paperType, setPaperType] = useState<string>(product?.paperType || "");
+  const [writer, setWriter] = useState<string>(product?.writer || "");
+  const [designer, setDesigner] = useState<string>(product?.designer || "");
+  const [category, setCategory] = useState<string>(product?.category || "");
 
   // Load dropdown data
   useEffect(() => {
@@ -47,14 +47,14 @@ export default function ProductForm({
     loadData();
   }, []);
 
-  async function handleSubmit(e: any) {
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
 
     await onSubmit({
       title,
       description,
       price: Number(price),
-      tags: tags.split(",").map((t) => t.trim()),
+      tags: tags.split(",").map((t: string) => t.trim()), // FIXED HERE
       images,
       paperType,
       writer,
