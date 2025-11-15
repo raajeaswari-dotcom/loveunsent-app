@@ -1,33 +1,50 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { ChangeEvent, FormEvent, useEffect, useState } from "react";
 import FileUpload from "@/components/FileUpload";
+
+type ProductPayload = {
+  title: string;
+  description: string;
+  price: number;
+  tags: string[];
+  images: string[];
+  paperType?: string;
+  writer?: string;
+  designer?: string;
+  category?: string;
+};
 
 export default function ProductForm({
   product,
   onSubmit,
 }: {
   product?: any;
-  onSubmit: (data: any) => Promise<void>;
+  onSubmit: (data: ProductPayload) => Promise<void>;
 }) {
-  const [title, setTitle] = useState(product?.title || "");
-  const [description, setDescription] = useState(product?.description || "");
-  const [price, setPrice] = useState(product?.price || "");
-  const [tags, setTags] = useState(product?.tags?.join(", ") || "");
-  const [images, setImages] = useState(product?.images || []);
+  const [title, setTitle] = useState<string>(product?.title || "");
+  const [description, setDescription] = useState<string>(
+    product?.description || ""
+  );
+  const [price, setPrice] = useState<number | "">(product?.price ?? "");
+  const [tags, setTags] = useState<string>(
+    product?.tags?.join(", ") || ""
+  );
+  const [images, setImages] = useState<string[]>(product?.images || []);
 
-  // Dropdowns
+  // Dropdown data
   const [paperTypes, setPaperTypes] = useState<any[]>([]);
   const [writers, setWriters] = useState<any[]>([]);
   const [designers, setDesigners] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
 
   // Selected values
-  const [paperType, setPaperType] = useState(product?.paperType || "");
-  const [writer, setWriter] = useState(product?.writer || "");
-  const [designer, setDesigner] = useState(product?.designer || "");
-  const [category, setCategory] = useState(product?.category || "");
+  const [paperType, setPaperType] = useState<string>(product?.paperType || "");
+  const [writer, setWriter] = useState<string>(product?.writer || "");
+  const [designer, setDesigner] = useState<string>(product?.designer || "");
+  const [category, setCategory] = useState<string>(product?.category || "");
 
+  // Load dropdown data
   useEffect(() => {
     async function loadData() {
       const [ptRes, wrRes, dsRes, catRes] = await Promise.all([
@@ -43,79 +60,105 @@ export default function ProductForm({
       setCategories(await catRes.json());
     }
 
-    loadData();
+    loadData().catch((err) => console.error("loadData error:", err));
   }, []);
 
-  async function handleSubmit(e: any) {
+  async function handleSubmit(e: FormEvent) {
     e.preventDefault();
 
-    await onSubmit({
+    const payload: ProductPayload = {
       title,
       description,
-      price: Number(price),
-      tags: tags.split(",").map((t: string) => t.trim()),
+      price: typeof price === "number" ? price : Number(price || 0),
+      tags: tags
+        .split(",")
+        .map((t) => t.trim())
+        .filter((t) => t.length > 0),
       images,
-      paperType,
-      writer,
-      designer,
-      category,
-    });
+      paperType: paperType || undefined,
+      writer: writer || undefined,
+      designer: designer || undefined,
+      category: category || undefined,
+    };
+
+    await onSubmit(payload);
   }
+
+  // helpers to handle changes with proper types
+  const onTitleChange = (e: ChangeEvent<HTMLInputElement>) =>
+    setTitle(e.target.value);
+  const onDescChange = (e: ChangeEvent<HTMLTextAreaElement>) =>
+    setDescription(e.target.value);
+  const onPriceChange = (e: ChangeEvent<HTMLInputElement>) =>
+    setPrice(e.target.value === "" ? "" : Number(e.target.value));
+  const onTagsChange = (e: ChangeEvent<HTMLInputElement>) =>
+    setTags(e.target.value);
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4 max-w-xl">
+      {/* TITLE + AI BUTTON */}
+      <div className="space-y-2">
+        <input
+          placeholder="Product Title"
+          className="border p-2 w-full rounded"
+          value={title}
+          onChange={onTitleChange}
+        />
 
-      {/* Title */}
-      <input
-        placeholder="Product Title"
-        className="border p-2 w-full rounded"
-        value={title}
-        onChange={(e) => setTitle(e.target.value)}
-      />
+        {/* AI Description Generator */}
+        <button
+          type="button"
+          className="text-sm px-3 py-1 bg-purple-600 text-white rounded"
+          onClick={async () => {
+            if (!title) return alert("Enter a title first!");
 
-      {/* Description */}
+            try {
+              const res = await fetch("/api/ai/description", {
+                method: "POST",
+                body: JSON.stringify({ title }),
+                headers: { "Content-Type": "application/json" },
+              });
+
+              const data = await res.json();
+
+              if (data.description) setDescription(data.description);
+              if (data.tags) setTags((data.tags as string[]).join(", "));
+            } catch (err) {
+              console.error("AI generation error:", err);
+              alert("AI generation failed");
+            }
+          }}
+        >
+          Generate Description with AI
+        </button>
+      </div>
+
+      {/* DESCRIPTION */}
       <textarea
         placeholder="Description"
         className="border p-2 w-full rounded"
         value={description}
-        onChange={(e) => setDescription(e.target.value)}
+        onChange={onDescChange}
       />
 
-      {/* Price */}
+      {/* PRICE */}
       <input
         type="number"
         placeholder="Price"
         className="border p-2 w-full rounded"
-        value={price}
-        onChange={(e) => setPrice(e.target.value)}
+        value={price === "" ? "" : price}
+        onChange={onPriceChange}
       />
 
-      {/* Tags */}
+      {/* TAGS */}
       <input
         placeholder="Comma separated tags"
         className="border p-2 w-full rounded"
         value={tags}
-        onChange={(e) => setTags(e.target.value)}
+        onChange={onTagsChange}
       />
 
-      {/* Category */}
-      <div>
-        <label className="block mb-1 font-medium">Category</label>
-        <select
-          className="border p-2 rounded w-full"
-          value={category}
-          onChange={(e) => setCategory(e.target.value)}
-        >
-          <option value="">Select Category</option>
-          {categories.map((c: any) => (
-            <option key={c._id} value={c.name}>
-              {c.name}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      {/* Paper Type */}
+      {/* PAPER TYPE */}
       <div>
         <label className="block mb-1 font-medium">Paper Type</label>
         <select
@@ -132,7 +175,7 @@ export default function ProductForm({
         </select>
       </div>
 
-      {/* Writer */}
+      {/* WRITER */}
       <div>
         <label className="block mb-1 font-medium">Writer</label>
         <select
@@ -142,14 +185,14 @@ export default function ProductForm({
         >
           <option value="">Select Writer</option>
           {writers.map((w: any) => (
-            <option key={w._id} value={w.name}>
+            <option key={w._1d ?? w._id} value={w.name}>
               {w.name}
             </option>
           ))}
         </select>
       </div>
 
-      {/* Designer */}
+      {/* DESIGNER */}
       <div>
         <label className="block mb-1 font-medium">Designer</label>
         <select
@@ -166,23 +209,38 @@ export default function ProductForm({
         </select>
       </div>
 
-      {/* Cloudinary Upload */}
+      {/* CATEGORY */}
+      <div>
+        <label className="block mb-1 font-medium">Category</label>
+        <select
+          className="border p-2 rounded w-full"
+          value={category}
+          onChange={(e) => setCategory(e.target.value)}
+        >
+          <option value="">Select Category</option>
+          {categories.map((c: any) => (
+            <option key={c._id} value={c.name}>
+              {c.name}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {/* CLOUDINARY UPLOAD */}
       <FileUpload images={images} setImages={setImages} />
 
-      {/* Preview */}
+      {/* IMAGE PREVIEW + DELETE */}
       <div className="flex gap-2 flex-wrap mt-4">
         {images.map((img: string, idx: number) => (
           <div key={idx} className="relative group">
-            <img
-              src={img}
-              className="w-24 h-24 object-cover rounded border"
-            />
+            <img src={img} className="w-24 h-24 object-cover rounded border" />
 
             <button
               type="button"
               onClick={() => {
                 if (confirm("Remove this image?")) {
-                  setImages(images.filter((_, i) => i !== idx));
+                  // typed filter callback: '_' is intentionally unused
+                  setImages(images.filter((_: string, i: number) => i !== idx));
                 }
               }}
               className="absolute top-1 right-1 bg-red-600 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition"
@@ -193,8 +251,11 @@ export default function ProductForm({
         ))}
       </div>
 
-      {/* Submit */}
-      <button className="bg-black text-white rounded px-4 py-2">
+      {/* SUBMIT BUTTON */}
+      <button
+        type="submit"
+        className="bg-black text-white rounded px-4 py-2"
+      >
         Save Product
       </button>
     </form>
