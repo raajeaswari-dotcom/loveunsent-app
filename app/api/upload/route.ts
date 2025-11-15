@@ -1,5 +1,11 @@
 import { NextResponse } from "next/server";
-import cloudinary from "@/lib/cloudinary";
+import { v2 as cloudinary } from "cloudinary";
+
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME!,
+  api_key: process.env.CLOUDINARY_API_KEY!,
+  api_secret: process.env.CLOUDINARY_API_SECRET!,
+});
 
 export async function POST(req: Request) {
   try {
@@ -8,37 +14,29 @@ export async function POST(req: Request) {
 
     if (!file) {
       return NextResponse.json(
-        { error: "No file provided" },
+        { error: "No file uploaded" },
         { status: 400 }
       );
     }
 
-    const arrayBuffer = await file.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
+    // Convert file → Buffer
+    const bytes = await file.arrayBuffer();
+    const buffer = Buffer.from(bytes);
 
-    const uploaded = await cloudinary.uploader.upload_stream(
-      { folder: "loveunsent-products" },
-      (error, result) => {
-        if (error) throw new Error("Cloudinary upload failed");
-        return result;
-      }
-    );
-
-    // FIX for upload_stream (Node API)
-    return new Promise((resolve, reject) => {
-      const stream = cloudinary.uploader.upload_stream(
-        { folder: "loveunsent-products" },
-        (error, result) => {
-          if (error) return reject(error);
-          resolve(NextResponse.json(result));
+    // Upload to Cloudinary
+    const result = await new Promise((resolve, reject) => {
+      cloudinary.uploader.upload_stream(
+        { folder: "loveunsent" },
+        (error, uploadResult) => {
+          if (error) reject(error);
+          else resolve(uploadResult);
         }
-      );
-
-      stream.end(buffer);
+      ).end(buffer);
     });
 
+    return NextResponse.json({ url: (result as any).secure_url });
   } catch (error) {
-    console.error(error);
+    console.error("Upload error:", error);
     return NextResponse.json(
       { error: "Upload failed" },
       { status: 500 }
