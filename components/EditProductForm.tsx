@@ -1,25 +1,18 @@
-import ProductCard from "@/components/products/ProductCard";
+"use client";
 
-async function getProducts() {
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL!;
-  const res = await fetch(`${baseUrl}/api/products`, {
-    cache: "no-store",
-  });
-  return res.json();
-}
+import ProductForm from "@/components/ProductForm";
 
-export default async function HomePage() {
-  const products = await getProducts();
+export default function EditProductForm({ product }: { product: any }) {
+  if (!product) return <p>Loading...</p>;
 
-  return (
-    <div className="max-w-7xl mx-auto py-10 px-4">
-      <h1 className="text-3xl font-bold mb-8">Shop Products</h1>
+  async function updateProduct(data: any) {
+    await fetch(`/api/products/${product._id}`, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    });
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-8">
-        {products.map((p: any) => {
-          return <ProductCard key={p._id} product={p} />;
-        })}
-      </div>
-    </div>
-  );
+    alert("Product updated!");
+  }
+
+  return <ProductForm product={product} onSubmit={updateProduct} />;
 }
